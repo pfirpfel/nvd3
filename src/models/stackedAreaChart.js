@@ -182,14 +182,14 @@ nv.models.stackedAreaChart = function() {
             disabled: stacked.style() != 'stack',
             style: 'stack'
           },
-          {
+          /*{
             key: controlLabels.stream || 'Stream',
             metaKey: 'Stream',
             disabled: stacked.style() != 'stream',
             style: 'stream'
-          },
+          },*/
           {
-            key: controlLabels.expanded || 'Expanded',
+            key: controlLabels.expanded || 'Ratio',
             metaKey: 'Expanded',
             disabled: stacked.style() != 'expand',
             style: 'expand'
