@@ -1,34 +1,33 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
+<head>
+    <meta charset="utf-8">
+    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+    <script src="http://d3js.org/d3.v3.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
+    <script src="lib/stream_layers.js"></script>
 
-<link href="../src/nv.d3.css" rel="stylesheet" type="text/css">
+    <style>
+        text {
+            font: 12px sans-serif;
+        }
 
-<style>
-
-
-body {
-  overflow-y:scroll;
-}
-
-text {
-  font: 12px sans-serif;
-}
-
-</style>
+        svg {
+            display: block;
+        }
+        html, body, #test1, svg {
+            margin: 0px;
+            padding: 0px;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+</head>
 <body>
 
   <div id="test1">
     <svg></svg>
   </div>
 
-<script src="../lib/d3.v3.js"></script>
-<script src="../nv.d3.js"></script>
-<script src="../src/tooltip.js"></script>
-<script src="../src/models/legend.js"></script>
-<script src="../src/models/axis.js"></script>
-<script src="../src/models/multiBar.js"></script>
-<script src="../src/utils.js"></script>
-<script src="stream_layers.js"></script>
 <script>
 
   //var test_data = stream_layers(3,128,.1).map(function(data, i) {
@@ -44,18 +43,23 @@ nv.addGraph({
       var width = nv.utils.windowSize().width - 40,
       height = nv.utils.windowSize().height - 40;
 
-      var chart = nv.models.multiBar()
+      var chart = nv.models.multiBarChart()
                 .width(width)
                 .height(height)
                 .stacked(true)
+                .delay(0)
+
+      chart.dispatch.on('renderEnd', function(){
+        console.log('Render Complete');
+      });
 
 
     var svg = d3.select('#test1 svg')
       .attr('width', width)
       .attr('height', height)
       .datum(test_data);
-
-    svg.transition().duration(500).call(chart);
+    console.log('calling chart');
+    svg.transition().duration(0).call(chart);
 
     return chart;
   },
@@ -79,10 +83,11 @@ nv.addGraph({
          .width(width)
          .height(height);
 
+      console.log('calling chart');
       d3.select('#test1 svg')
         .attr('width', width)
         .attr('height', height)
-        transition().duration(500)
+        transition().duration(0)
         .call(graph);
 
       };
@@ -90,5 +95,5 @@ nv.addGraph({
 });
 
 
-
 </script>
+</body></html>

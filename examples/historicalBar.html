@@ -1,42 +1,41 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-<link href="../src/nv.d3.css" rel="stylesheet" type="text/css">
-<style>
+<head>
+    <meta charset="utf-8">
+    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
+    <script src="http://d3js.org/d3.v3.js" charset="utf-8"></script>
+    <script src="../build/nv.d3.js"></script>
 
-body {
-  overflow-y:scroll;
-}
+    <style>
+        text {
+            font: 12px sans-serif;
+        }
 
-text {
-  font: 12px sans-serif;
-}
-
-</style>
+        svg {
+            display: block;
+        }
+        html, body, svg {
+            margin: 0px;
+            padding: 0px;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+</head>
 <body>
 
 <svg id="test1"></svg>
-
-<script src="../lib/d3.v3.js"></script>
-<script src="../nv.d3.js"></script>
-<script src="../src/models/historicalBar.js"></script>
-<script src="../src/utils.js"></script>
 
 <script> 
 
 
 nv.addGraph({
   generate: function() {
-    var width = nv.utils.windowSize().width - 40,
-        height = nv.utils.windowSize().height - 40;
 
     var chart = nv.models.historicalBar()
-        .padData(true)
-        .width(width)
-        .height(height);
+        //.padData(true);
 
     d3.select("#test1")
-      .attr('width', width)
-      .attr('height', height)
+      .datum(sinData())
       .datum(sinData())
       .transition()
       .call(chart);
@@ -50,13 +49,6 @@ nv.addGraph({
                 left = e.pos[0],
                 top = e.pos[1];
 
-                /*
-        var content = '<h3>' + e.label + '</h3>' +
-                '<p>' +
-                e.value +
-                '</p>';
-                */
-
         var content = '<p>' + e.point.y + '</p>';
 
         nv.tooltip.show([left, top], content, e.value < 0 ? 'n' : 's');
@@ -65,47 +57,6 @@ nv.addGraph({
     graph.dispatch.on('elementMouseout', function(e) {
         nv.tooltip.cleanup();
     });
-
-    /*
-    graph.dispatch.on('elementClick', function(e) {
-        console.log("Bar Click",e);
-    });
-
-    graph.dispatch.on('chartClick', function(e) {
-        console.log("Chart Click",e);
-    });
-
-    graph.dispatch.on('chartClick', function(e) {
-        console.log('Click Switching to');
-        if (td === 0) {
-            d3.select("#test1")
-                    .datum(testdata2)
-                    .call(graph);
-            td = 1;
-
-        } else {
-            d3.select("#test1")
-                    .datum(testdata)
-                    .call(graph);
-            td = 0;
-        }
-      });
-    */
-
-
-    window.onresize = function() {
-      var width = nv.utils.windowSize().width - 40,
-          height = nv.utils.windowSize().height - 40;
-
-      graph
-        .width(width)
-        .height(height)
-
-      d3.select("#test1")
-          .attr('width', width)
-          .attr('height', height)
-        .call(graph);
-    };
   }
 });
 
@@ -156,3 +107,4 @@ function sinData() {
 }
 
 </script>
+</body></html>

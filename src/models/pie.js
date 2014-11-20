@@ -9,7 +9,6 @@ nv.models.pie = function() {
     , height = 500
     , getX = function(d) { return d.x }
     , getY = function(d) { return d.y }
-    , getDescription = function(d) { return d.description }
     , id = Math.floor(Math.random() * 10000) //Create semi-unique ID in case user doesn't select one
     , color = nv.utils.defaultColor()
     , valueFormat = d3.format(',.2f')
@@ -24,13 +23,15 @@ nv.models.pie = function() {
     , startAngle = false
     , endAngle = false
     , donutRatio = 0.5
-    , dispatch = d3.dispatch('chartClick', 'elementClick', 'elementDblClick', 'elementMouseover', 'elementMouseout')
+    , duration = 250
+    , dispatch = d3.dispatch('chartClick', 'elementClick', 'elementDblClick', 'elementMouseover', 'elementMouseout', 'renderEnd')
     ;
 
   //============================================================
-
+  var renderWatch = nv.utils.renderWatch(dispatch);
 
   function chart(selection) {
+    renderWatch.reset();
     selection.each(function(data) {
       var availableWidth = width - margin.left - margin.right,
           availableHeight = height - margin.top - margin.bottom,
@@ -199,7 +200,7 @@ nv.models.pie = function() {
 
               return Math.floor(coordinates[0]/avgWidth) * avgWidth + ',' + Math.floor(coordinates[1]/avgHeight) * avgHeight;
           };
-          pieLabels.transition()
+          pieLabels.watchTransition(renderWatch,'pie labels')
                 .attr('transform', function(d) {
                   if (labelSunbeamLayout) {
                       d.outerRadius = arcRadius + 10; // Set Outer Coordinate
@@ -272,6 +273,7 @@ nv.models.pie = function() {
 
     });
 
+    renderWatch.renderEnd('pie immediate');
     return chart;
   }
 
@@ -318,12 +320,6 @@ nv.models.pie = function() {
   chart.y = function(_) {
     if (!arguments.length) return getY;
     getY = d3.functor(_);
-    return chart;
-  };
-
-  chart.description = function(_) {
-    if (!arguments.length) return getDescription;
-    getDescription = _;
     return chart;
   };
 
@@ -409,6 +405,13 @@ nv.models.pie = function() {
   chart.labelThreshold = function(_) {
     if (!arguments.length) return labelThreshold;
     labelThreshold = _;
+    return chart;
+  };
+
+  chart.duration = function(_) {
+    if (!arguments.length) return duration;
+    duration = _;
+    renderWatch.reset(duration);
     return chart;
   };
   //============================================================

@@ -18,10 +18,11 @@ nv.models.pieChart = function() {
         return '<h3>' + key + '</h3>' +
                '<p>' +  y + '</p>'
       }
-    , state = {}
+    , state = nv.utils.state()
     , defaultState = null
     , noData = "No Data Available."
-    , dispatch = d3.dispatch('tooltipShow', 'tooltipHide', 'stateChange', 'changeState')
+    , duration = 250
+    , dispatch = d3.dispatch('tooltipShow', 'tooltipHide', 'stateChange', 'changeState','renderEnd')
     ;
 
   //============================================================
@@ -41,10 +42,31 @@ nv.models.pieChart = function() {
     nv.tooltip.show([left, top], content, e.value < 0 ? 'n' : 's', null, offsetElement);
   };
 
+  var renderWatch = nv.utils.renderWatch(dispatch);
+
+  var stateGetter = function(data) {
+    return function(){
+      return {
+        active: data.map(function(d) { return !d.disabled })
+      };
+    }
+  };
+
+  var stateSetter = function(data) {
+    return function(state) {
+      if (state.active !== undefined)
+        data.forEach(function(series,i) {
+          series.disabled = !state.active[i];
+        });
+    }
+  }
   //============================================================
 
 
   function chart(selection) {
+    renderWatch.reset();
+    renderWatch.models(pie);
+
     selection.each(function(data) {
       var container = d3.select(this),
           that = this;
@@ -56,6 +78,11 @@ nv.models.pieChart = function() {
 
       chart.update = function() { container.transition().call(chart); };
       chart.container = this;
+
+      state
+        .setter(stateSetter(data), chart.update)
+        .getter(stateGetter(data))
+        .update();
 
       //set state.disabled
       state.disabled = data.map(function(d) { return !!d.disabled });
@@ -157,7 +184,8 @@ nv.models.pieChart = function() {
       //------------------------------------------------------------
 
       legend.dispatch.on('stateChange', function(newState) {
-        state = newState;
+        for (var key in newState)
+          state[key] = newState[key];
         dispatch.stateChange(state);
         chart.update();
       });
@@ -185,6 +213,7 @@ nv.models.pieChart = function() {
 
     });
 
+    renderWatch.renderEnd('pieChart immediate');
     return chart;
   }
 
@@ -217,7 +246,7 @@ nv.models.pieChart = function() {
   chart.dispatch = dispatch;
   chart.pie = pie;
 
-  d3.rebind(chart, pie, 'valueFormat', 'labelFormat', 'values', 'x', 'y', 'description', 'id', 'showLabels', 'donutLabelsOutside', 'pieLabelsOutside', 'labelType', 'donut', 'donutRatio', 'labelThreshold');
+  d3.rebind(chart, pie, 'valueFormat', 'labelFormat', 'x', 'y', 'id', 'showLabels', 'donutLabelsOutside', 'pieLabelsOutside', 'labelType', 'donut', 'donutRatio', 'labelThreshold');
   chart.options = nv.utils.optionsFunc.bind(chart);
 
   chart.margin = function(_) {
@@ -267,11 +296,17 @@ nv.models.pieChart = function() {
     return chart;
   };
 
+  // DEPRECATED
   chart.state = function(_) {
+    nv.deprecated('pieChart.state');
     if (!arguments.length) return state;
     state = _;
     return chart;
   };
+  for (var key in state) {
+    chart.state[key] = state[key];
+  }
+  // END DEPRECATED
 
   chart.defaultState = function(_) {
     if (!arguments.length) return defaultState;
@@ -282,6 +317,14 @@ nv.models.pieChart = function() {
   chart.noData = function(_) {
     if (!arguments.length) return noData;
     noData = _;
+    return chart;
+  };
+
+  chart.duration = function(_) {
+    if (!arguments.length) return duration;
+    duration = _;
+    renderWatch.reset(duration);
+    pie.duration(duration);
     return chart;
   };
 
