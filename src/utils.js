@@ -125,9 +125,172 @@ nv.utils.NaNtoZero = function(n) {
     if (typeof n !== 'number'
         || isNaN(n)
         || n === null
-        || n === Infinity) return 0;
+        || n === Infinity
+        || n === -Infinity) return 0;
 
     return n;
+};
+
+// This utility class watches for d3 transition ends.
+
+(function(){
+  d3.selection.prototype.watchTransition = function(renderWatch){
+    var args = [this].concat([].slice.call(arguments, 1));
+    return renderWatch.transition.apply(renderWatch, args);
+  }
+})();
+
+nv.utils.renderWatch = function(dispatch, duration) {
+  if (!(this instanceof nv.utils.renderWatch))
+    return new nv.utils.renderWatch(dispatch, duration);
+  var _duration = duration !== undefined ? duration : 250;
+  var renderStack = [];
+  var self = this;
+  this.models = function(models) {
+    models = [].slice.call(arguments, 0);
+    models.forEach(function(model){
+      model.__rendered = false;
+      (function(m){
+        m.dispatch.on('renderEnd', function(arg){
+          // nv.log('nv.utils renderEnd', arg);
+          m.__rendered = true;
+          self.renderEnd('model');
+        });
+      })(model);
+      if (renderStack.indexOf(model) < 0)
+        renderStack.push(model);
+    });
+    return this;
+  }
+
+  this.reset = function(duration) {
+    if (duration !== undefined) _duration = duration;
+    renderStack = [];
+  }
+
+  this.transition = function(selection, args, duration) {
+    args = arguments.length > 1 ? [].slice.call(arguments, 1) : [];
+    duration = args.length > 1 ? args.pop() :
+               _duration !== undefined ? _duration :
+               250;
+    selection.__rendered = false;
+
+    if (renderStack.indexOf(selection) < 0)
+      renderStack.push(selection);
+
+    if (duration === 0)
+    {
+      selection.__rendered = true;
+      selection.delay = function(){return this;}
+      selection.duration = function(){return this;}
+      return selection;
+    }
+    else
+    {
+      selection.__rendered = selection.length === 0 ? true :
+                             selection.every( function(d){ return !d.length; }) ? true :
+                             false;
+      var n = 0;
+      return selection
+        .transition()
+        .duration(duration)
+        .each(function(){ ++n; })
+        .each('end', function(d, i){
+          if (--n === 0)
+          {
+            selection.__rendered = true;
+            self.renderEnd.apply(this, args);
+          }
+        });
+    }
+  };
+
+  this.renderEnd = function() {
+    if (renderStack.every( function(d){ return d.__rendered; } ))
+    {
+      renderStack.forEach( function(d){ d.__rendered = false; });
+      dispatch.renderEnd.apply(this, arguments);
+    }
+  }
+
+};
+
+
+nv.utils.deepExtend = function(dst){
+  var sources = arguments.length > 1 ? [].slice.call(arguments, 1) : [];
+  sources.forEach(function(source) {
+    for (key in source) {
+      var isArray = dst[key] instanceof Array;
+      var isObject = typeof dst[key] === 'object';
+      var srcObj = typeof source[key] === 'object';
+      if (isObject && !isArray && srcObj)
+        nv.utils.deepExtend(dst[key], source[key]);
+      else
+        dst[key] = source[key];
+    }
+  });
+}
+
+// Chart state utility
+nv.utils.state = function(){
+  if (!(this instanceof nv.utils.state))
+    return new nv.utils.state();
+  var state = {},
+    _self = this,
+    _setState = function(){},
+    _getState = function(){ return {};},
+    init = null,
+    changed = null;
+
+  this.dispatch = d3.dispatch('change', 'set');
+
+  this.dispatch.on('set', function(state){
+    _setState(state, true);
+  });
+
+  this.getter = function(fn){
+    _getState = fn;
+    return this;
+  };
+
+  this.setter = function(fn, callback) {
+    if (!callback) callback = function(){};
+    _setState = function(state, update){
+      fn(state);
+      if (update) callback();
+    };
+    return this;
+  };
+
+  this.init = function(state){
+    init = init || {};
+    nv.utils.deepExtend(init, state);
+  };
+
+  var _set = function(){
+    var settings = _getState();
+
+    if (JSON.stringify(settings) === JSON.stringify(state)) {
+      return false;
+    }
+
+    for (var key in settings) {
+      if (state[key] === undefined) state[key] = {};
+      state[key] = settings[key];
+      changed = true;
+    }
+    return true;
+  };
+
+  this.update = function(){
+    if (init) {
+      _setState(init, false);
+      init = null;
+    }
+    if (_set.call(this))
+      this.dispatch.change(state);
+  }
+
 };
 
 /*
@@ -142,6 +305,7 @@ To enable in the chart:
 chart.options = nv.utils.optionsFunc.bind(chart);
 */
 nv.utils.optionsFunc = function(args) {
+    nv.deprecated('nv.utils.optionsFunc');
     if (args) {
       d3.map(args).forEach((function(key,value) {
         if (typeof this[key] === "function") {
@@ -151,3 +315,4 @@ nv.utils.optionsFunc = function(args) {
     }
     return this;
 };
+
